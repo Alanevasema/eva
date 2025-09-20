@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الفيديوهات التعليمية المحمية</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        
+        .protection-active body::before {
+            opacity: 1;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+        
+        .protection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.1),
+                rgba(0, 0, 0, 0.1) 10px,
+                rgba(0, 0, 0, 0.05) 10px,
+                rgba(0, 0, 0, 0.05) 20px
+            );
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .protection-active .protection-overlay {
+            opacity: 1;
+        }
+        
+        .login-container {
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            text-align: center;
+        }
+        
+        input[type="password"]:focus {
+            border-color: #4a6491;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 100, 145, 0.2);
+        }
+        
+        button {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #4a6491;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+            display: block;
+        }
+        
+        .videos-container {
+            display: none;
+            padding: 20px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .video-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+        
+        .video-title {
+            font-weight: bold;
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* نسبة 16:9 */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #2c3e50, #4a6491);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .logout-btn {
+            background: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .protection-notice {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                margin: 0 10px;
+            }
+            
+            .login-container {
+                padding: 30px 20px;
+            }
+            
+            .video-item {
+                padding: 15px;
+            }
+            
+            body {
+                padding: 10px;
+            }
+        }
+        
+        /* منع النسخ والتحديد */
+        .no-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="no-select">
+    <div class="container" id="mainContainer">
+        <div class="protection-overlay"></div>
+        
+        <div id="loginScreen" class="login-container">
+            <div class="logo">E</div>
+            <h1>نظام الفيديوهات التعليمية المحمية</h1>
+            
+            <div class="form-group">
+                <label for="password">كلمة المرور</label>
+                <input type="password" id="password" placeholder="أدخل كلمة المرور للدخول">
+            </div>
+            
+            <button id="loginBtn">دخول</button>
+            
+            <div id="message" class="message"></div>
+        </div>
+        
+        <div id="videosScreen" class="videos-container">
+            <div class="header">
+                <h2>الفيديوهات التعليمية</h2>
+                <button id="logoutBtn" class="logout-btn">خروج</button>
+            </div>
+            
+            <div class="video-item">
+                <div class="video-title">الفيزياء - الحركة التوافقية البسيطة</div>
+                <div class="video-wrapper">
+                    <iframe src="about:blank" data-src="https://drive.google.com/file/d/1OOgrxovUJw5cGGLCfawcho8_rV-Xobk1/preview" allowfullscreen></iframe>
+                    <div class="watermark">محمي © 2023</div>
+                </div>
+            </div>
+            
+            <div class="video-item">
+                <div class="video-title">الكيمياء - التفاعلات الكيميائية</div>
+                <div class="video-wrapper">
+                    <iframe src="about:blank" data-src="https://drive.google.com/file/d/1OOgrxovUJw5cGGLCfawcho8_rV-Xobk1/preview" allowfullscreen></iframe>
+                    <div class="watermark">محمي © 2023</div>
+                </div>
+            </div>
+            
+            <div class="video-item">
+                <div class="video-title">الرياضيات - حساب التفاضل</div>
+                <div class="video-wrapper">
+                    <iframe src="about:blank" data-src="https://drive.google.com/file/d/1OOgrxovUJw5cGGLCfawcho8_rV-Xobk1/preview" allowfullscreen></iframe>
+                    <div class="watermark">محمي © 2023</div>
+                </div>
+            </div>
+            
+            <div class="video-item">
+                <div class="video-title">الأحياء - الخلية الحية</div>
+                <div class="video-wrapper">
+                    <iframe src="about:blank" data-src="https://drive.google.com/file/d/1OOgrxovUJw5cGGLCfawcho8_rV-Xobk1/preview" allowfullscreen></iframe>
+                    <div class="watermark">محمي © 2023</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="protection-notice" id="protectionNotice">تم منع محاولة التقاط الشاشة</div>
+
+    <script>
+        // عناصر DOM
+        const loginScreen = document.getElementById('loginScreen');
+        const videosScreen = document.getElementById('videosScreen');
+        const messageDiv = document.getElementById('message');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const mainContainer = document.getElementById('mainContainer');
+        const protectionNotice = document.getElementById('protectionNotice');
+        
+        // كلمات المرور للمستخدمين (يمكنك تغييرها وإضافة المزيد)
+        const USER_PASSWORDS = {
+            "user1": "12",
+            "user2": "13",
+            "user3": "14",
+            "teacher": "16"
+        };
+        
+        // تهيئة النظام
+        function initSystem() {
+            // التحقق من الاتصال بالإنترنت
+            checkInternetConnection();
+            
+            // التحقق إذا كان المستخدم قد سجل الدخول مسبقاً
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                showVideosScreen();
+            } else {
+                showLoginScreen();
+            }
+            
+            // إضافة مستمعي الأحداث للحماية
+            setupProtection();
+        }
+        
+        // إعداد أنظمة الحماية
+        function setupProtection() {
+            // منع النقر بزر الماوس الأيمن
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                showProtectionNotice('هذا الإجراء غير مسموح به');
+            });
+            
+            // منع اختصارات لوحة المفاتيح للتقاط الشاشة
+            document.addEventListener('keydown', function(e) {
+                // منع Print Screen
+                if (e.key === 'PrintScreen' || e.keyCode === 44) {
+                    e.preventDefault();
+                    showProtectionNotice('تم منع التقاط الشاشة');
+                    return false;
+                }
+                
+                // منع Alt + Print Screen
+                if (e.altKey && e.keyCode === 44) {
+                    e.preventDefault();
+                    showProtectionNotice('تم منع التقاط الشاشة');
+                    return false;
+                }
+                
+                // منع Ctrl + Shift + I (أدوات المطورين)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    showProtectionNotice('تم منع فتح أدوات المطورين');
+                    return false;
+                }
+                
+                // منع Ctrl + Shift + C (أدوات المطورين - inspect element)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                    e.preventDefault();
+                    showProtectionNotice('تم منع فحص العنصر');
+                    return false;
+                }
+                
+                // منع F12 (أدوات المطورين)
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    showProtectionNotice('تم منع فتح أدوات المطورين');
+                    return false;
+                }
+            });
+            
+            // منع سحب وإفلات المحتوى
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+            });
+            
+            // منع نسخ المحتوى
+            document.addEventListener('copy', function(e) {
+                e.preventDefault();
+                showProtectionNotice('غير مسموح بنسخ المحتوى');
+            });
+            
+            // منع لصق المحتوى
+            document.addEventListener('paste', function(e) {
+                e.preventDefault();
+                showProtectionNotice('غير مسموح بلصق المحتوى هنا');
+            });
+            
+            // منع قص المحتوى
+            document.addEventListener('cut', function(e) {
+                e.preventDefault();
+                showProtectionNotice('غير مسموح بقص المحتوى');
+            });
+            
+            // مراقبة تغيير حجم النافذة (لمنع أدوات المطورين)
+            let windowWidth = window.innerWidth;
+            let windowHeight = window.innerHeight;
+            
+            window.addEventListener('resize', function() {
+                if (Math.abs(window.innerWidth - windowWidth) > 100 || 
+                    Math.abs(window.innerHeight - windowHeight) > 100) {
+                    showProtectionNotice('تم اكتشاف نشاط غير عادي');
+                }
+                
+                windowWidth = window.innerWidth;
+                windowHeight = window.innerHeight;
+            });
+            
+            // منع فتح الصفحة في نافذة جديدة
+            document.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A' && e.target.getAttribute('target') === '_blank') {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // التحقق من الاتصال بالإنترنت
+        function checkInternetConnection() {
+            if (!navigator.onLine) {
+                showMessage('يجب الاتصال بالإنترنت لاستخدام النظام', 'error');
+                return false;
+            }
+            
+            // اختبار اتصال حقيقي (ليس شبكة وهمية)
+            fetch('https://www.google.com/favicon.ico', { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    showMessage('اتصال الإنترنت غير مستقر', 'error');
+                }
+            })
+            .catch(() => {
+                showMessage('اتصال الإنترنت غير مستقر أو أنك متصل بشبكة وهمية', 'error');
+            });
+            
+            return true;
+        }
+        
+        // عرض إشعار الحماية
+        function showProtectionNotice(message) {
+            protectionNotice.textContent = message;
+            protectionNotice.style.display = 'block';
+            
+            // تفعيل وضع الحماية
+            mainContainer.classList.add('protection-active');
+            
+            // إخفاء الإشعار بعد 3 ثوان
+            setTimeout(() => {
+                protectionNotice.style.display = 'none';
+                mainContainer.classList.remove('protection-active');
+            }, 3000);
+        }
+        
+        // عرض شاشة الدخول
+        function showLoginScreen() {
+            loginScreen.style.display = 'block';
+            videosScreen.style.display = 'none';
+            passwordInput.value = '';
+        }
+        
+        // عرض شاشة الفيديوهات
+        function showVideosScreen() {
+            loginScreen.style.display = 'none';
+            videosScreen.style.display = 'block';
+            
+            // تحميل الفيديوهات بعد التسجيل
+            loadVideos();
+        }
+        
+        // تحميل الفيديوهات
+        function loadVideos() {
+            // هنا سيتم تحميل الفيديوهات من Google Drive
+            // نستخدم data-src لحفظ المصدر الحقيقي ولا نحمله حتى لا يظهر للمستخدم
+            const iframes = document.querySelectorAll('iframe[data-src]');
+            
+            iframes.forEach(iframe => {
+                // إضافة مراقب لضمان عدم محاولة المستخدم فتح الرابط
+                iframe.addEventListener('load', function() {
+                    try {
+                        // منع النقر على أي روابط داخل الفيديو
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        iframeDoc.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        });
+                    } catch (e) {
+                        // تجاوز ошибات السياسة الأمنية بين النطاقات
+                    }
+                });
+                
+                // تحميل الفيديو بعد تأخير بسيط
+                setTimeout(() => {
+                    iframe.src = iframe.getAttribute('data-src');
+                }, 1000);
+            });
+        }
+        
+        // عرض الرسائل
+        function showMessage(message, type) {
+            messageDiv.textContent = message;
+            messageDiv.className = 'message ' + type;
+            
+            // إخفاء الرسالة بعد 3 ثواني
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // تسجيل الدخول
+        loginBtn.addEventListener('click', function() {
+            const password = passwordInput.value;
+            
+            if (!password) {
+                showMessage('يرجى إدخال كلمة المرور', 'error');
+                return;
+            }
+            
+            // التحقق من كلمة المرور
+            let validPassword = false;
+            for (const user in USER_PASSWORDS) {
+                if (USER_PASSWORDS[user] === password) {
+                    validPassword = true;
+                    break;
+                }
+            }
+            
+            if (!validPassword) {
+                showMessage('كلمة المرور غير صحيحة', 'error');
+                return;
+            }
+            
+            // حفظ حالة تسجيل الدخول
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            // عرض شاشة الفيديوهات
+            showVideosScreen();
+        });
+        
+        // تسجيل الخروج
+        logoutBtn.addEventListener('click', function() {
+            // حذف حالة تسجيل الدخول
+            localStorage.removeItem('isLoggedIn');
+            
+            // إيقاف تحميل الفيديوهات
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.src = 'about:blank';
+            });
+            
+            // العودة إلى شاشة الدخول
+            showLoginScreen();
+        });
+        
+        // السماح بالإدخال عند الضغط على Enter
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loginBtn.click();
+            }
+        });
+        
+        // تهيئة النظام عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', initSystem);
+        
+        // مراقبة الاتصال بالإنترنت
+        window.addEventListener('online', function() {
+            showMessage('تم استعادة الاتصال بالإنترنت', 'success');
+        });
+        
+        window.addEventListener('offline', function() {
+            showMessage('فقدان الاتصال بالإنترنت', 'error');
+            
+            // إيقاف الفيديوهات عند فقدان الاتصال
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.src = 'about:blank';
+            });
+        });
+    </script>
+</body>
+</html>
